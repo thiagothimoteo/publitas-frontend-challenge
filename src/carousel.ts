@@ -63,7 +63,7 @@ export default class Carousel {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = 'gray';
+    ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
@@ -75,14 +75,18 @@ export default class Carousel {
     ctx.restore();
   }
 
-  handleMouseDown = (event: MouseEvent) => {
+  handleMouseDown = (event: MouseEvent | TouchEvent) => {
     if (!this.canvas) return;
 
     this.state = 'dragging';
 
     this.canvas!.style.cursor = 'grabbing';
 
-    this.startX = event.clientX - this.canvas.getBoundingClientRect().left;
+    const clientX = event.type === 'mousedown'
+      ? (event as MouseEvent).clientX
+      : (event as TouchEvent).touches[0].clientX;
+
+    this.startX = clientX - this.canvas.getBoundingClientRect().left;
   }
 
   handleMouseUp() {
@@ -94,10 +98,14 @@ export default class Carousel {
     this.previousPosition = this.currentPosition;
   }
 
-  handleMouseMove(event: MouseEvent) {
+  handleMouseMove(event: MouseEvent | TouchEvent) {
     if (this.state !== 'dragging' || !this.canvas) return;
 
-    this.currentPosition = event.clientX - this.startX - this.canvas.getBoundingClientRect().left + this.previousPosition;
+    const clientX = event.type === 'mousemove'
+      ? (event as MouseEvent).clientX
+      : (event as TouchEvent).touches[0].clientX;
+
+    this.currentPosition = clientX - this.startX - this.canvas.getBoundingClientRect().left + this.previousPosition;
 
     const maxPosition = -1 * ((this.images.length * this.canvas.width) - this.canvas.width);
 
@@ -115,9 +123,15 @@ export default class Carousel {
 
     canvas.style.cursor =  'grab';
 
+    // MOUSE EVENTS FOR DESKTOP
     canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
     window.addEventListener('mousemove', this.handleMouseMove.bind(this));
     window.addEventListener('mouseup', this.handleMouseUp.bind(this));
+
+    // TOUCH EVENTS FOR MOBILE
+    canvas.addEventListener('touchstart', this.handleMouseDown.bind(this));
+    window.addEventListener('touchmove', this.handleMouseMove.bind(this));
+    window.addEventListener('touchend', this.handleMouseUp.bind(this));
 
     this.draw();
   }
