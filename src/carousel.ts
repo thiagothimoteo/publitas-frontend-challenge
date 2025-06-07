@@ -7,8 +7,8 @@ export default class Carousel {
   images: HTMLImageElement[];
   startX: number;
   state: 'idle' | 'dragging';
-  currentPosition: number;
-  previousPosition: number;
+  currentTranslateX: number;
+  previousTranslateX: number;
 
   constructor (elem: HTMLCanvasElement | null, imagesSources: string[]) {
     this.canvas = elem;
@@ -19,8 +19,8 @@ export default class Carousel {
     this.images = [];
 
     this.startX = 0;
-    this.currentPosition = 0;
-    this.previousPosition = 0;
+    this.currentTranslateX = 0;
+    this.previousTranslateX = 0;
   }
 
   loadImage(imgSrc: string): Promise<HTMLImageElement> {
@@ -76,50 +76,54 @@ export default class Carousel {
   }
 
   handleMouseDown = (event: MouseEvent | TouchEvent) => {
-    if (!this.canvas) return;
-
     this.state = 'dragging';
 
-    this.canvas!.style.cursor = 'grabbing';
+    const canvas = this.canvas!;
+
+    canvas.style.cursor = 'grabbing';
 
     const clientX = event.type === 'mousedown'
       ? (event as MouseEvent).clientX
       : (event as TouchEvent).touches[0].clientX;
 
-    this.startX = clientX - this.canvas.getBoundingClientRect().left;
+    this.startX = clientX - canvas.getBoundingClientRect().left;
   }
 
   handleMouseUp() {
-    if (!this.canvas) return;
-
     this.state = 'idle';
-    this.canvas.style.cursor =  'grab';
+    this.canvas!.style.cursor =  'grab';
 
-    this.previousPosition = this.currentPosition;
+    this.previousTranslateX = this.currentTranslateX;
+  }
+
+  get maxTranslateX() {
+    return -1 * ((this.images.length * this.canvas!.width) - this.canvas!.width);
   }
 
   handleMouseMove(event: MouseEvent | TouchEvent) {
-    if (this.state !== 'dragging' || !this.canvas) return;
+    if (this.state !== 'dragging') return;
+
+    const canvas = this.canvas!;
 
     const clientX = event.type === 'mousemove'
       ? (event as MouseEvent).clientX
       : (event as TouchEvent).touches[0].clientX;
 
-    this.currentPosition = clientX - this.startX - this.canvas.getBoundingClientRect().left + this.previousPosition;
+    this.currentTranslateX = clientX - this.startX - canvas.getBoundingClientRect().left + this.previousTranslateX;
 
-    const maxPosition = -1 * ((this.images.length * this.canvas.width) - this.canvas.width);
+    if (this.currentTranslateX > 0) this.currentTranslateX = 0;
 
-    if (this.currentPosition > 0) this.currentPosition = 0;
+    if (this.currentTranslateX < this.maxTranslateX) this.currentTranslateX = this.maxTranslateX;
 
-    if (this.currentPosition < maxPosition) this.currentPosition = maxPosition;
-
-    this.draw( this.currentPosition)
+    this.draw( this.currentTranslateX);
   }
 
   async initialize() {
     await this.setImages();
 
-    const canvas = this.canvas!
+    if (!this.canvas) throw new Error('Failed to find canvas element!');
+
+    const canvas = this.canvas;
 
     canvas.style.cursor =  'grab';
 
