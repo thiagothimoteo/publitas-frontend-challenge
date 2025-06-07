@@ -1,0 +1,104 @@
+export default class Carousel {
+  canvas: HTMLCanvasElement | null;
+  context: CanvasRenderingContext2D | null | undefined;
+  imagesSources: string[];
+  images: HTMLImageElement[];
+  startX: number;
+  state: 'idle' | 'dragging';
+  currentPosition: number;
+  previousPosition: number;
+
+  constructor (elem: HTMLCanvasElement | null, imagesSources: string[]) {
+    this.canvas = elem;
+    this.context = this.canvas?.getContext('2d');
+
+    this.state = 'idle';
+    this.imagesSources = imagesSources;
+    this.images = [];
+
+    this.startX = 0;
+    this.currentPosition = 0;
+    this.previousPosition = 0;
+  }
+
+  loadImage(imgSrc: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+
+      img.src = imgSrc;
+
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load image: ${imgSrc}`));
+    });
+  }
+
+  async setImages() {
+    const loadPromises = this.imagesSources.map(imgSrc => this.loadImage(imgSrc))
+    const images = await Promise.all(loadPromises);
+
+    this.images = images;
+  }
+
+  draw(translateX: number = 0) {
+    const canvas = this.canvas;
+    const ctx = this.context;
+
+    if (!ctx || !canvas) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'gray';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+
+    ctx.translate(translateX, 0);
+
+    this.images.forEach((image, index) => ctx?.drawImage(image, canvas.width * index, 0));
+
+    ctx.restore();
+  }
+
+  handleMouseDown = (event: MouseEvent) => {
+    if (!this.canvas) return;
+
+    this.state = 'dragging';
+
+    this.canvas!.style.cursor = 'grabbing';
+
+    this.startX = event.clientX - this.canvas.getBoundingClientRect().left;
+  }
+
+  handleMouseUp() {
+    if (!this.canvas) return;
+
+    this.state = 'idle';
+    this.canvas.style.cursor =  'grab';
+
+    this.previousPosition = this.currentPosition;
+  }
+
+  handleMouseMove(event: MouseEvent) {
+    if (this.state !== 'dragging' || !this.canvas) return;
+
+    this.currentPosition = event.clientX - this.startX - this.canvas.getBoundingClientRect().left + this.previousPosition;
+
+    const maxPosition = -1 * ((this.images.length * this.canvas.width) - this.canvas.width);
+
+    if (this.currentPosition > 0) this.currentPosition = 0;
+
+    if (this.currentPosition < maxPosition) this.currentPosition = maxPosition;
+
+    this.draw( this.currentPosition)
+  }
+
+  async initialize() {
+    await this.setImages();
+
+    this.canvas?.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    window.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    window.addEventListener('mouseup', this.handleMouseUp.bind(this));
+
+    this.draw();
+  }
+}
