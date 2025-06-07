@@ -3,7 +3,7 @@ import Carousel from './carousel';
 import { IMAGES_SOURCES } from './constants';
 
 window.addEventListener('load', () => {
-  const canvas = document.querySelector<HTMLCanvasElement>('#photos-carousel')!;
+  const canvas = document.querySelector<HTMLCanvasElement>('#carousel')!;
 
   const carousel = new Carousel(canvas, IMAGES_SOURCES);
 
