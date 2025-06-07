@@ -1,3 +1,5 @@
+import { getImagePositionOnCanvas, scaleToFit } from "./carousel.helpers";
+
 export default class Carousel {
   canvas: HTMLCanvasElement | null;
   context: CanvasRenderingContext2D | null | undefined;
@@ -39,6 +41,20 @@ export default class Carousel {
     this.images = images;
   }
 
+  drawImages() {
+    const canvas = this.canvas;
+    const ctx = this.context;
+
+    if (!ctx || !canvas) return;
+
+    this.images.forEach((image, index) => {
+      const { width, height } = scaleToFit(image.width, image.height, canvas.width, canvas.height);
+      const { x, y } = getImagePositionOnCanvas(width, height, index, canvas.width,  canvas.height);
+
+      ctx?.drawImage(image, x, y, width, height);
+    });
+  }
+
   draw(translateX: number = 0) {
     const canvas = this.canvas;
     const ctx = this.context;
@@ -54,7 +70,7 @@ export default class Carousel {
 
     ctx.translate(translateX, 0);
 
-    this.images.forEach((image, index) => ctx?.drawImage(image, canvas.width * index, 0));
+    this.drawImages();
 
     ctx.restore();
   }
@@ -95,7 +111,11 @@ export default class Carousel {
   async initialize() {
     await this.setImages();
 
-    this.canvas?.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    const canvas = this.canvas!
+
+    canvas.style.cursor =  'grab';
+
+    canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
     window.addEventListener('mousemove', this.handleMouseMove.bind(this));
     window.addEventListener('mouseup', this.handleMouseUp.bind(this));
 
