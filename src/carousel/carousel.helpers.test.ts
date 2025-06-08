@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scaleToFit, getImagePositionOnCanvas } from './carousel.helpers';
+import { scaleToFit, getImagePositionOnCanvas, updateTranslateX } from './carousel.helpers';
 
 describe('#scaleToFit', () => {
   describe('given the original dimensions are smaller than the max dimensions', () => {
@@ -88,6 +88,86 @@ describe('#getImagePositionOnCanvas', () => {
           });
         });
       })
+    });
+  });
+});
+
+describe('#updateTranslateX', () => {
+  describe('given the calculated translateX is within bounds', () => {
+    describe('when the user drags within the scrollable range', () => {
+      it('then it should return the calculated translateX', () => {
+        const result = updateTranslateX(
+          300,  // clientX
+          100,  // startX
+          50,   // canvasClientRectX
+          -200, // previousTranslateX
+          -500  // maxTranslateX
+        );
+        // next = 300 - 100 - 50 + (-200) = -50 (within bounds)
+        expect(result).toBe(-50);
+      });
+    });
+  });
+
+  describe('given the calculated translateX exceeds the left bound (greater than 0)', () => {
+    describe('when the user drags too far to the right', () => {
+      it('then it should return 0', () => {
+        const result = updateTranslateX(
+          600,
+          100,
+          50,
+          0,
+          -500
+        );
+        // next = 600 - 100 - 50 + 0 = 450 → should be clamped to 0
+        expect(result).toBe(0);
+      });
+    });
+  });
+
+  describe('given the calculated translateX exceeds the right bound (less than maxTranslateX)', () => {
+    describe('when the user drags too far to the left', () => {
+      it('then it should return maxTranslateX', () => {
+        const result = updateTranslateX(
+          100,
+          500,
+          50,
+          -300,
+          -600
+        );
+        // next = 100 - 500 - 50 + (-300) = -750 → clamp to -600
+        expect(result).toBe(-600);
+      });
+    });
+  });
+
+  describe('given the calculated translateX is exactly at the bounds', () => {
+    describe('when it matches the left bound (0)', () => {
+      it('then it should return 0', () => {
+        const result = updateTranslateX(
+          150,
+          100,
+          50,
+          0,
+          -400
+        );
+        // next = 150 - 100 - 50 + 0 = 0
+        expect(result).toBe(0);
+      });
+    });
+
+    describe('when it matches the right bound (maxTranslateX)', () => {
+      it('then it should return maxTranslateX', () => {
+        const result = updateTranslateX(
+          100,
+          500,
+          50,
+          -250,
+          -600
+        );
+        // next = 100 - 500 - 50 + (-250) = -700 → clamp to -600
+        expect(result).toBe(-600);
+      });
     });
   });
 });

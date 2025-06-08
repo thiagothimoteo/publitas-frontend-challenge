@@ -7,5 +7,5 @@ window.addEventListener('load', () => {
 
   const carousel = new Carousel(canvas, IMAGES_SOURCES);
 
-  carousel.initialize();
+  carousel.init();
 });

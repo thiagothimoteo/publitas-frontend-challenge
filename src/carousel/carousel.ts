@@ -1,26 +1,30 @@
-import { getImagePositionOnCanvas, scaleToFit } from "./carousel.helpers";
+import { getImagePositionOnCanvas, scaleToFit, updateTranslateX } from './carousel.helpers';
 
 export default class Carousel {
-  canvas: HTMLCanvasElement | null;
-  context: CanvasRenderingContext2D | null | undefined;
-  imagesSources: string[];
+  readonly canvas: HTMLCanvasElement | null;
+  readonly context: CanvasRenderingContext2D | null | undefined;
+  readonly imagesSources: string[];
   images: HTMLImageElement[];
-  startX: number;
-  state: 'idle' | 'dragging';
-  currentTranslateX: number;
-  previousTranslateX: number;
+  #startX: number;
+  #state: 'idle' | 'dragging';
+  #currentTranslateX: number;
+  #previousTranslateX: number;
 
   constructor (elem: HTMLCanvasElement | null, imagesSources: string[]) {
     this.canvas = elem;
     this.context = this.canvas?.getContext('2d');
 
-    this.state = 'idle';
+    this.#state = 'idle';
     this.imagesSources = imagesSources;
     this.images = [];
 
-    this.startX = 0;
-    this.currentTranslateX = 0;
-    this.previousTranslateX = 0;
+    this.#startX = 0;
+    this.#currentTranslateX = 0;
+    this.#previousTranslateX = 0;
+
+    this.handleMouseDown = this.handleMouseDown.bind(this);
+    this.handleMouseMove = this.handleMouseMove.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this)
   }
 
   loadImage(imgSrc: string): Promise<HTMLImageElement> {
@@ -76,7 +80,7 @@ export default class Carousel {
   }
 
   handleMouseDown = (event: MouseEvent | TouchEvent) => {
-    this.state = 'dragging';
+    this.#state = 'dragging';
 
     const canvas = this.canvas!;
 
@@ -86,14 +90,14 @@ export default class Carousel {
       ? (event as MouseEvent).clientX
       : (event as TouchEvent).touches[0].clientX;
 
-    this.startX = clientX - canvas.getBoundingClientRect().left;
+    this.#startX = clientX - canvas.getBoundingClientRect().left;
   }
 
   handleMouseUp() {
-    this.state = 'idle';
+    this.#state = 'idle';
     this.canvas!.style.cursor =  'grab';
 
-    this.previousTranslateX = this.currentTranslateX;
+    this.#previousTranslateX = this.#currentTranslateX;
   }
 
   get maxTranslateX() {
@@ -101,24 +105,24 @@ export default class Carousel {
   }
 
   handleMouseMove(event: MouseEvent | TouchEvent) {
-    if (this.state !== 'dragging') return;
-
-    const canvas = this.canvas!;
+    if (this.#state !== 'dragging') return;
 
     const clientX = event.type === 'mousemove'
       ? (event as MouseEvent).clientX
       : (event as TouchEvent).touches[0].clientX;
 
-    this.currentTranslateX = clientX - this.startX - canvas.getBoundingClientRect().left + this.previousTranslateX;
+    this.#currentTranslateX = updateTranslateX(
+      clientX,
+      this.#startX,
+      this.canvas!.getBoundingClientRect().left,
+      this.#previousTranslateX,
+      this.maxTranslateX,
+    );
 
-    if (this.currentTranslateX > 0) this.currentTranslateX = 0;
-
-    if (this.currentTranslateX < this.maxTranslateX) this.currentTranslateX = this.maxTranslateX;
-
-    this.draw( this.currentTranslateX);
+    requestAnimationFrame(() => this.draw(this.#currentTranslateX));
   }
 
-  async initialize() {
+  async init() {
     await this.setImages();
 
     if (!this.canvas) throw new Error('Failed to find canvas element!');
@@ -128,14 +132,14 @@ export default class Carousel {
     canvas.style.cursor =  'grab';
 
     // MOUSE EVENTS FOR DESKTOP
-    canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-    window.addEventListener('mousemove', this.handleMouseMove.bind(this));
-    window.addEventListener('mouseup', this.handleMouseUp.bind(this));
+    canvas.addEventListener('mousedown', this.handleMouseDown);
+    window.addEventListener('mousemove', this.handleMouseMove);
+    window.addEventListener('mouseup', this.handleMouseUp);
 
     // TOUCH EVENTS FOR MOBILE
-    canvas.addEventListener('touchstart', this.handleMouseDown.bind(this));
-    window.addEventListener('touchmove', this.handleMouseMove.bind(this));
-    window.addEventListener('touchend', this.handleMouseUp.bind(this));
+    canvas.addEventListener('touchstart', this.handleMouseDown);
+    window.addEventListener('touchmove', this.handleMouseMove);
+    window.addEventListener('touchend', this.handleMouseUp);
 
     this.draw();
   }

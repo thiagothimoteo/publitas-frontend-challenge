@@ -36,3 +36,19 @@ export const getImagePositionOnCanvas = (
 
   return { x: xAxis, y: yAxis }
 }
+
+export const updateTranslateX = (
+  clientX: number,
+  startX: number,
+  canvasClientRectX: number,
+  previousTranslateX: number,
+  maxTranslateX: number,
+) => {
+  let nextTranslateX = clientX - startX - canvasClientRectX + previousTranslateX;
+
+  if (nextTranslateX > 0) nextTranslateX = 0;
+
+  if (nextTranslateX < maxTranslateX) nextTranslateX = maxTranslateX;
+
+  return nextTranslateX;
+}
